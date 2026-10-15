@@ -55,8 +55,10 @@ UA = "PakLeadEngine/1.0 (+https://github.com/bushra19953/paklead-engine)"
 DETAIL_KEY = "graana_detail"
 DETAIL_BUDGET = 20            # max detail fetches per batch run
 DETAIL_DELAY = 2.0            # minimum seconds between same-host fetches
-CAPTCHA_RE = re.compile(r"captcha|challenge-platform|cfrclr|datadome",
-                        re.I)
+# NOTE: the old CAPTCHA_RE (bare "captcha" substring) was removed 2026-10-15 —
+# it matched Zameen's benign STRAT_WITH_CAPTCHA JS flag. Challenge
+# detection now uses collectors.retry.challenge_markers_found
+# (challenge-shaped markers only).
 
 _next_data_re = re.compile(
     r'id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.S)
@@ -167,12 +169,18 @@ def extract(detail: dict) -> dict:
         if isinstance(g, dict) and g:
             features[group] = g
 
+    # Graana ships location as FLAT dotted keys ("area.name", "city.name")
+    # on detail payloads; nested dicts appear on some list payloads.
     area = detail.get("area") if isinstance(detail.get("area"), dict) else {}
     city = detail.get("city") if isinstance(detail.get("city"), dict) else {}
+    area_name = _txt(area.get("name")) or _txt(detail.get("area.name"))
+    city_name = _txt(city.get("name")) or _txt(detail.get("city.name"))
 
     out = {
         "detail_url": "",            # filled in by enrich()
         "graana_id": _txt(detail.get("id")),
+        "title": _txt(detail.get("customTitle") or detail.get("title")),
+        "price": detail.get("price"),
         "description": _txt(detail.get("description")),
         "agency_contact": agency_contact,   # name/phone/email/website/addr/city if published
         "agent_contact": agent_contact,     # name/family_name/phone(_verified) if published
@@ -185,8 +193,8 @@ def extract(detail: dict) -> dict:
         "lat": detail.get("lat"),
         "lng": detail.get("lng"),
         "address": _txt(detail.get("address")),
-        "area": _txt(area.get("name")),
-        "city": _txt(city.get("name")),
+        "area": area_name,
+        "city": city_name,
         "bed": detail.get("bed"),
         "bath": detail.get("bath"),
         "features": features,

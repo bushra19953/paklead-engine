@@ -541,10 +541,12 @@ class WebListingsCollector(CollectorAdapter):
         records: list[RawRecord] = []
         seen: set[str] = set()
         want = None
+        drop_json = drop_id = drop_empty = 0
         for m in _ld_re.finditer(text):
             try:
                 d = json.loads(m.group(1).strip())
             except Exception:
+                drop_json += 1
                 continue
             if not isinstance(d, dict):
                 continue
@@ -559,6 +561,7 @@ class WebListingsCollector(CollectorAdapter):
             mid = _pw_id_re.search(url)
             pid = mid.group(1) if mid else None
             if not pid or pid in seen:
+                drop_id += 1
                 continue
             title = (d.get("name") or "").strip()
             price = offers.get("price")
@@ -589,7 +592,8 @@ class WebListingsCollector(CollectorAdapter):
             if city:
                 parts.append(city)
             if not title and price is None:
-                continue  # don't emit empty records
+                drop_empty += 1  # don't emit empty records
+                continue
             seen.add(pid)
             records.append(RawRecord(
                 platform="pakwheels", platform_post_id=pid, source_id=None,
@@ -599,6 +603,7 @@ class WebListingsCollector(CollectorAdapter):
                 access_route_used="web_public", comments=[]))
         # Soft completeness check against the page's own ItemList count.
         if want is not None and want != len(records):
-            log.warning("pakwheels: ItemList says %d items, parsed %d.",
-                        want, len(records))
+            log.warning("pakwheels: ItemList says %d items, parsed %d "
+                        "(dropped: json=%d id=%d empty=%d).",
+                        want, len(records), drop_json, drop_id, drop_empty)
         return records

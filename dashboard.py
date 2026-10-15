@@ -301,8 +301,9 @@ def _source_health(conn: sqlite3.Connection,
 # ---------------------------------------------------------------------------
 # Sync/import view (B30).
 #
-# api.py has NO /sync/bulk-upsert endpoint, so this implements the import
-# directly against the same idempotent key the pipeline uses:
+# Standalone import path (independent of api.py's token-gated
+# /sync/bulk-upsert): implements the import directly against the same
+# idempotent key the pipeline uses:
 #     post_id = f"{platform}:{platform_post_id}"   (pipeline.py::_ingest_record)
 # Rows already present are left untouched (INSERT OR IGNORE, idempotent
 # re-runs per SHR-15); comments are inserted with INSERT OR IGNORE as well.
