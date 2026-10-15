@@ -39,10 +39,14 @@ method. This skill is that method, adapted to PakLead's boundaries.
    human-checked against the visible site, then cadence is set.
 
 ## Site notes (researched 2026-10-15)
-- **OLX (olx.com.pk):** shared OLX platform; frontend API pattern is publicly
-  documented by open-source wrappers for other OLX countries (search /
-  product / seller / categories / locations). Price-drop field = deal signal.
-  Verify the .com.pk host's exact endpoints in the browser before coding.
+- **OLX (olx.com.pk):** verified 2026-10-15 — search pages embed schema.org
+  JSON-LD (CollectionPage → mainEntity ItemList → RealEstateListing with name,
+  ad URL + numeric ID, offers.price in PKR, bedrooms/baths, floorSize, address).
+  Pages 2+ carry no embedded listings (cards load from the search backend —
+  which we NEVER call), so the public-page route covers page 1 only (~20
+  results). NO price-history field exists on olx.com.pk: drop all price-drop
+  expectations here. The page source also exposes the internal search-backend
+  host and an embedded credential — NEVER use either.
 - **Zameen.com:** URL-driven search with internal city ids (Lahore-1,
   Karachi-2, Islamabad-3 pattern); open-source scrapers use plain HTTP +
   HTML parsing or a real browser. Note: Zameen's robots.txt disallows the

@@ -157,6 +157,12 @@ CREATE TABLE IF NOT EXISTS audit_entry (
     target TEXT,
     detail TEXT DEFAULT '{}'   -- JSON, immutable
 );
+
+-- Scale indexes (clustering candidate prefilter, post lookups)
+CREATE INDEX IF NOT EXISTS idx_post_platform_pub ON post(platform, published_at);
+CREATE INDEX IF NOT EXISTS idx_post_contact ON post(contact_published);
+CREATE INDEX IF NOT EXISTS idx_lead_city_intent ON lead(city, intent);
+CREATE INDEX IF NOT EXISTS idx_lead_first_seen ON lead(first_seen);
 """
 
 
@@ -172,6 +178,11 @@ def connect(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL mode: concurrent readers during long write batches (scale work).
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass  # read-only filesystems keep rollback journal
     return conn
 
 

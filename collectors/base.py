@@ -12,7 +12,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 # Allowed access routes (TRD §1 access matrix). Nothing else may appear.
-ACCESS_ROUTES = ("api", "cli_adapter", "browser_optin", "manual_import", "public_page")
+ACCESS_ROUTES = ("api", "cli_adapter", "browser_optin", "manual_import",
+                 "public_page", "web_public")
 
 
 class RawRecord(dict):

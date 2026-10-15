@@ -65,11 +65,20 @@ no third-party scraper APIs (SHR boundaries).
 Method skill: paklead-frontend-api-discovery — discover the JSON endpoints a
 site's own frontend uses for public data, map to the import schema, wrap as a
 polite collector. Learned from open-source projects:
-- OLX country sites share one platform whose frontend exposes search /
-  listing / seller / category / location data calls (publicly documented by
-  open-source wrappers for other OLX countries); listing payloads can include
-  a previous price — a built-in price-drop (deal) signal. The .com.pk host's
-  exact endpoints must be verified in the browser before coding a collector.
+- OLX country sites share one platform. Verified live on olx.com.pk
+  (2026-10-15, browser recon + direct page probe): search pages embed
+  schema.org JSON-LD (an ItemList of RealEstateListing objects with exact
+  numeric prices, size, beds/baths, address, listing URL/id) and a dataLayer
+  push with the page's ad_ids and page count; pagination links are ?page=N
+  (Islamabad houses: 460 pages) but pages 2+ carry NO embedded listings in the
+  public HTML — the public-page route covers page 1 only (~20 results).
+  Detail pages add seller_type (individual vs
+  agent), a seller id, location ids, and photo count. NO price-history /
+  previous-price field exists on .com.pk (that signal exists on some other
+  OLX countries only) — do not design for it here. The pages also expose the
+  site's internal search backend and an embedded credential for it in the
+  page source: PakLead does NOT use that backend or credential — our route
+  is only the structured data served inside the public pages.
 - Zameen search URLs encode internal city ids (`/Homes/{City}-{id}-{page}.html`;
   Lahore-1, Karachi-2, Islamabad-3 pattern). Zameen's robots.txt disallows the
   city-listing paths, so Zameen stays browser-based at human scale.

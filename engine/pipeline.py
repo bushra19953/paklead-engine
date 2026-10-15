@@ -73,6 +73,9 @@ class Pipeline:
             if route == "cli_adapter":
                 return FacebookAdapter("cli_adapter")
             return FacebookAdapter("manual_import")
+        if route == "web_public" and platform in ("olx", "zameen", "graana"):
+            from collectors.web_listings import WebListingsCollector
+            return WebListingsCollector()
         from collectors.import_adapter import ImportAdapter
         return ImportAdapter(file_path=(source.get("boundary_note") or "").replace("file:", ""))
 
@@ -237,9 +240,21 @@ class Pipeline:
             "SELECT * FROM post WHERE post_id IN (%s)" %
             ",".join("?" * len(merged_post_ids)), merged_post_ids).fetchall()]
 
-    def _existing_leads(self) -> list[dict]:
+    def _existing_leads(self, post: dict) -> list[dict]:
+        """Candidate leads for clustering, prefiltered in SQL.
+
+        The comparator only merges when city and intent match, and every
+        merge path is time-bounded (phone: 7 days, text: 72h), so leads
+        outside those gates can never match — filter them out instead of
+        loading the whole table per post (O(n^2) -> O(bucket)).
+        """
+        cutoff = (_now() - datetime.timedelta(days=8)).isoformat()
+        rows = self.conn.execute(
+            "SELECT * FROM lead WHERE city IS NOT DISTINCT FROM ?"
+            " AND intent IS NOT DISTINCT FROM ? AND first_seen >= ?",
+            (post.get("city_tag"), post.get("intent_primary"), cutoff)).fetchall()
         leads = []
-        for r in self.conn.execute("SELECT * FROM lead").fetchall():
+        for r in rows:
             leads.append({"lead_id": r["lead_id"],
                           "merged_posts": self._posts_of(jload(r["merged_post_ids"])),
                           "city": r["city"], "intent": r["intent"],
@@ -249,7 +264,7 @@ class Pipeline:
     def _cluster_and_score(self, post_id: str, quarantined: int, run_stamp: str) -> None:
         post = dict(self.conn.execute("SELECT * FROM post WHERE post_id=?",
                                       (post_id,)).fetchone())
-        match, explanation = self.comparator.find_cluster(post, self._existing_leads())
+        match, explanation = self.comparator.find_cluster(post, self._existing_leads(post))
         now = _now()
 
         if match:
