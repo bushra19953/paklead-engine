@@ -157,6 +157,21 @@ def detect_language(text: str) -> str:
 # ----------------------------------------------------------------------
 # Intent matching (TRD FR-PK-32)
 # ----------------------------------------------------------------------
+#: Memoized per-phrase normalization (C-42 2026-10-15: _phrase_matches was
+#: calling normalize_text() on EVERY bank phrase for EVERY post — ~773
+#: redundant normalizations/post. Phrases are a fixed set per bank load,
+#: so this cache is bounded by bank size and preserves exact semantics.)
+_phrase_norm_cache: dict[str, str] = {}
+
+
+def _norm_phrase(phrase: str) -> str:
+    n = _phrase_norm_cache.get(phrase)
+    if n is None:
+        n = normalize_text(phrase)
+        _phrase_norm_cache[phrase] = n
+    return n
+
+
 def _phrase_matches(norm_text: str, phrase: str) -> tuple[bool, int, bool]:
     """(full_match, best_contiguous_run, run_is_generic_filler) for one phrase.
 
@@ -166,7 +181,7 @@ def _phrase_matches(norm_text: str, phrase: str) -> tuple[bool, int, bool]:
     filler words ("looking for", "need a") carry no category signal and
     are flagged so callers can ignore them.
     """
-    phrase_n = normalize_text(phrase)
+    phrase_n = _norm_phrase(phrase)
     padded = f" {norm_text} "
     if f" {phrase_n} " in padded or norm_text == phrase_n:
         return True, len(phrase_n.split()), False
@@ -207,7 +222,7 @@ def classify_intent(text: str, bank: dict) -> dict:
             if is_full:
                 full += 1
                 hits.append(phrase)
-            elif tok_hits >= max(2, len(normalize_text(phrase).split()) // 2) \
+            elif tok_hits >= max(2, len(_norm_phrase(phrase).split()) // 2) \
                     and not generic:
                 partial_tokens += tok_hits
         score = weight * (full + 0.25 * min(partial_tokens, 4))
