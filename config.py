@@ -109,8 +109,18 @@ def load_scoring_config() -> dict:
     intent_multiplier = 6, totals capped at 100.
     """
     return {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "intent_multiplier": 6,            # category weight (1-10) x 6  (PRD S8 worked examples)
+        # B26: pure-rental listings (daily-rent flats, industrial land for
+        # rent) must not reach HOT for the wholesale use case. Marker lists
+        # mirror engine/scorer.py's module defaults; override them here to
+        # tune without touching code.
+        "rental_markers": ["for rent", "kiraye par", "rent par",
+                           "monthly rent", "per day", "daily rent",
+                           "on rent", "kiraya"],
+        "sale_markers": ["for sale", "sale k liye", "bechna hai", "bech raha",
+                         "farokht", "demand", "for sell"],
+        "rental_score_cap": 64,            # below hot_threshold (70)
         "price_inquiry_bonus": 5,          # +5 if price_inquiry qualifier present
         "complaint_replacement_bonus": 10, # complaint_pain + replacement urgency, quarantine-cleared only
         "recency_max": 15,                 # 15 within 24h, linear decay to 0 at freshness window end

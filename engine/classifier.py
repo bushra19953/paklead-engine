@@ -112,6 +112,16 @@ def normalize_text(text: str) -> str:
     # Punctuation (commas, !, ?, quotes, …) becomes spaces so phrase
     # matching is not blocked by it; decimals like 2.5 are preserved.
     text = re.sub(r"[^\w\s\u0600-\u06FF.]", " ", text)
+    # B27 punctuation fix (2026-10-15): strip leading/trailing punctuation
+    # from each token so bank phrases match at sentence boundaries
+    # ("For Sale." -> "for sale"). Conservative by design: only token ends
+    # are touched, so decimals like 3.5 and abbreviations mid-token keep
+    # their internal punctuation.
+    tokens = []
+    for tok in text.split():
+        stripped = tok.strip(".,!?;:'\"()[]{}")
+        tokens.append(stripped if stripped else tok)
+    text = " ".join(tokens)
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
