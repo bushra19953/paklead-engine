@@ -61,6 +61,23 @@ no third-party scraper APIs (SHR boundaries).
   wholesale book's core lead type.
 - Skill: paklead-zameen-harvest (project-native).
 
+## Reverse-engineering notes (open-source research, 2026-10-15)
+Method skill: paklead-frontend-api-discovery — discover the JSON endpoints a
+site's own frontend uses for public data, map to the import schema, wrap as a
+polite collector. Learned from open-source projects:
+- OLX country sites share one platform whose frontend exposes search /
+  listing / seller / category / location data calls (publicly documented by
+  open-source wrappers for other OLX countries); listing payloads can include
+  a previous price — a built-in price-drop (deal) signal. The .com.pk host's
+  exact endpoints must be verified in the browser before coding a collector.
+- Zameen search URLs encode internal city ids (`/Homes/{City}-{id}-{page}.html`;
+  Lahore-1, Karachi-2, Islamabad-3 pattern). Zameen's robots.txt disallows the
+  city-listing paths, so Zameen stays browser-based at human scale.
+- Graana public listing pages are readable with plain HTTP + HTML parsing
+  (open-source scrapers + one n8n system polling Graana every 2h for client
+  matching). Graana added as a first-class property source
+  (skill: paklead-graana-harvest).
+
 ## Also in the original mission scope (not yet connected)
 - PakWheels (same pattern as OLX/Zameen: public listings, browser route).
 - Instagram (connector exists in this environment; hashtag/location reading
