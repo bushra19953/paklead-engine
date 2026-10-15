@@ -386,8 +386,8 @@ def classify_comment(text: str, bank: dict) -> dict:
 
 LISTING_PLATFORMS = {"olx", "zameen", "graana", "pakwheels"}
 _SELLING_MARKERS = ("for sale", "sale k liye", "bechna hai", "available for sale")
-_WANTED_MARKERS = ("chahiye", "required", "looking for", "needed", "lena hai",
-                   "want to buy", "khareedna", "talash hai")
+_WANTED_MARKERS = ("chahiye", "required", "looking for", "looking to buy",
+                   "needed", "lena hai", "want to buy", "khareedna", "talash hai")
 _PROPERTY_TOKENS = re.compile(
     r"\b(house|plot|flat|marla|kanal|portion|ghar|apartment|shop|dukaan)\b", re.I)
 
