@@ -276,7 +276,8 @@ class Pipeline:
         status = "new"
         if score["hot_flag"] and not quarantined:
             status = "hot"
-            self._emit_alert(lead_id, score)
+            if score.get("new_hot"):
+                self._emit_alert(lead_id, score)
         self.conn.execute("UPDATE lead SET status=? WHERE lead_id=?", (status, lead_id))
 
     # ------------------------------------------------------------------
@@ -347,6 +348,9 @@ class Pipeline:
         audit(self.conn, "scorer", "score_computed", lead_id,
               {"total": score["total"], "hot": score["hot_flag"],
                "config": score["scoring_config_version"]})
+        # Alert de-dup (engine gap fix): a lead alerts only on the
+        # not-hot -> hot transition, not on every re-score.
+        score["new_hot"] = bool(score["hot_flag"]) and not (prev and prev["hot_flag"])
         return score
 
     # ------------------------------------------------------------------

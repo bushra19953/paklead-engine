@@ -46,19 +46,25 @@ def main() -> None:
         raise SystemExit(1)
 
     settings = Settings()
-    conn = connect(settings.DB_PATH)
-    init_db(conn)
-    pipeline = Pipeline(settings, conn)
 
     def job():
-        if settings.KILL_SWITCH:
-            audit(conn, "scheduler", "run_skipped_kill_switch", detail={})
-            log.warning("KILL_SWITCH=true — scheduled run skipped.")
-            return
-        summary = pipeline.run_daily()
-        log.info("Daily run complete: %s sources, %s leads, %s alerts.",
-                 len(summary.get("runs", [])), summary.get("leads"),
-                 len(summary.get("alerts", [])))
+        # Threading fix (engine gap): APScheduler runs job() on a worker
+        # thread — never share one sqlite connection across threads.
+        # Each run opens (and closes) its own connection.
+        conn = connect(settings.DB_PATH)
+        try:
+            init_db(conn)
+            if settings.KILL_SWITCH:
+                audit(conn, "scheduler", "run_skipped_kill_switch", detail={})
+                conn.commit()
+                log.warning("KILL_SWITCH=true — scheduled run skipped.")
+                return
+            summary = Pipeline(settings, conn).run_daily()
+            log.info("Daily run complete: %s sources, %s leads, %s alerts.",
+                     len(summary.get("runs", [])), summary.get("leads"),
+                     len(summary.get("alerts", [])))
+        finally:
+            conn.close()
 
     cron = settings.RUN_TIME.strip()
     try:
