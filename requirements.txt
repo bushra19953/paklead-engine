@@ -1,0 +1,9 @@
+# Core (free/open-source). The engine itself (config, models, engine/)
+# is pure stdlib — these packages are only needed for live collection,
+# the scheduler, the API, and the dashboard.
+praw>=7.7            # official Reddit API client (free)
+apscheduler>=3.10    # daily job scheduler (free)
+fastapi>=0.110       # dashboard API (free)
+uvicorn>=0.29        # ASGI server (free)
+streamlit>=1.33      # dashboard UI (free)
+python-dotenv>=1.0   # .env loading (free)

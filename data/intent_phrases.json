@@ -1,0 +1,484 @@
+{
+ "budget_patterns": [
+  "\\bRs\\.?\\s?[\\d,]+",
+  "\\bPKR\\s?[\\d,]+",
+  "\\b\\d+(\\.\\d+)?\\s?[kK]\\b",
+  "\\b\\d+(\\.\\d+)?\\s?lac\\b",
+  "\\b\\d+(\\.\\d+)?\\s?lakh\\b",
+  "\\b\\d+(\\.\\d+)?\\s?crore\\b",
+  "\\b\\d+(\\.\\d+)?\\s?cr\\b",
+  "\\bdemand\\s*:?\\s*[\\d,.kKlL]+",
+  "\\bfinal\\s*:?\\s*[\\d,.kKlL]+",
+  "\\bbudget\\s*:?\\s*[\\d,.kKlL]+",
+  "\\bper\\s+marla\\s+[\\d,.kKlL]+",
+  "\\b\\d+\\s?thousand\\b"
+ ],
+ "categories": {
+  "complaint_pain": {
+   "phrases_en": [
+    "scammed by this seller",
+    "fraud alert",
+    "never buy from this shop",
+    "pathetic service",
+    "they took advance and disappeared",
+    "worst experience",
+    "cheated me",
+    "beware of this page"
+   ],
+   "phrases_roman_urdu": [
+    "ye seller fraud hai",
+    "paisay le kar gayab",
+    "is page se kabhi na lena",
+    "advance le liya kaam nahi kiya",
+    "dhoka hua hai",
+    "sab se bura experience",
+    "scam alert hai",
+    "koi is banday par bharosa na kare"
+   ],
+   "phrases_urdu": [
+    "یہ بیچنے والا دھوکے باز ہے",
+    "پیسے لے کر غائب ہو گیا",
+    "اس صفحے سے کبھی نہ خریدیں",
+    "دھوکا ہوا ہے",
+    "سب سے برا تجربہ",
+    "ہوشیار رہیں"
+   ],
+   "weight": 5
+  },
+  "freelance_offering": {
+   "phrases_en": [
+    "I provide logo design services",
+    "freelance web developer available",
+    "DM for orders",
+    "affordable rates",
+    "100% original work",
+    "delivery on time",
+    "portfolio available",
+    "first order discount",
+    "I do video editing",
+    "content writing services"
+   ],
+   "phrases_roman_urdu": [
+    "logo design karta hun order karein",
+    "website bnani ho to rabta karein",
+    "DM karein order k liye",
+    "reasonable rates hain",
+    "kaam time par deliver hoga",
+    "portfolio dekh lein pehle",
+    "pehle order par discount",
+    "video editing karta hun",
+    "assignment likhta hun",
+    "social media manage karta hun"
+   ],
+   "phrases_urdu": [
+    "میں لوگو ڈیزائن کرتا ہوں",
+    "ویب سائٹ بناتا ہوں",
+    "آرڈر کے لیے رابطہ کریں",
+    "مناسب قیمت پر کام",
+    "وقت پر ڈیلیوری",
+    "پورٹ فولیو دستیاب ہے"
+   ],
+   "weight": 8
+  },
+  "freelance_seeking": {
+   "phrases_en": [
+    "need a logo designer",
+    "looking for a video editor",
+    "anyone does content writing",
+    "need someone for data entry",
+    "looking for a social media manager",
+    "need a WordPress developer",
+    "anyone available for a quick gig",
+    "need thumbnail designer",
+    "looking for a virtual assistant",
+    "need a script writer"
+   ],
+   "phrases_roman_urdu": [
+    "logo designer chahiye",
+    "video editor ki zaroorat hai",
+    "content writer koi hai?",
+    "data entry ka kaam karwana hai",
+    "social media sambhalne wala chahiye",
+    "WordPress wala chahiye",
+    "koi thumbnail bnane wala?",
+    "virtual assistant chahiye",
+    "koi gig available hai?",
+    "script writer chahiye"
+   ],
+   "phrases_urdu": [
+    "لوگو ڈیزائنر چاہیے",
+    "ویڈیو ایڈیٹر کی ضرورت ہے",
+    "مواد نویس چاہیے",
+    "ڈیٹا انٹری کا کام ہے",
+    "ورچوئل اسسٹنٹ چاہیے",
+    "تھمب نیل بنانے والا چاہیے"
+   ],
+   "weight": 8
+  },
+  "hiring": {
+   "phrases_en": [
+    "we are hiring",
+    "vacancy available",
+    "male/female staff required",
+    "apply with CV",
+    "walk-in interview",
+    "experienced staff needed",
+    "salary package",
+    "send your resume",
+    "part time job available",
+    "night shift",
+    "commission based",
+    "fresh candidates can apply"
+   ],
+   "phrases_roman_urdu": [
+    "staff ki zaroorat hai",
+    "larkay larkion ki zaroorat hai",
+    "CV bhejen",
+    "interview kal hoga",
+    "experience lazmi hai",
+    "salary 40k plus commission",
+    "part time kaam hai",
+    "rider chahiye",
+    "salesman required",
+    "office boy chahiye",
+    "female staff required",
+    "WhatsApp par CV send karein"
+   ],
+   "phrases_urdu": [
+    "عملے کی ضرورت ہے",
+    "اسامی دستیاب ہے",
+    "سی وی بھیجیں",
+    "انٹرویو کے لیے تشریف لائیں",
+    "تجربہ ضروری ہے",
+    "تنخواہ اچھی ملے گی",
+    "رائیڈر کی ضرورت ہے",
+    "دکان کے لیے لڑکا چاہیے"
+   ],
+   "weight": 8
+  },
+  "job_seeking": {
+   "phrases_en": [
+    "I am looking for a job",
+    "need a job urgently",
+    "any vacancy in your office",
+    "fresher looking for opportunity",
+    "can anyone refer me",
+    "looking for part time work",
+    "driver available for job",
+    "need work from home",
+    "data entry job needed",
+    "in need of employment"
+   ],
+   "phrases_roman_urdu": [
+    "mujhe job chahiye",
+    "koi kaam ho to btayen",
+    "fresh hun job dhoond raha hun",
+    "kisi ki reference se job mil jaye",
+    "part time kaam chahiye",
+    "driver hun kaam chahiye",
+    "ghar bethay kaam chahiye",
+    "koi vacancy ho to btana",
+    "mazdoori ka kaam bhi chalega",
+    "security guard ki job chahiye"
+   ],
+   "phrases_urdu": [
+    "مجھے نوکری چاہیے",
+    "کوئی کام ہو تو بتائیں",
+    "میں تازہ فارغ التحصیل ہوں",
+    "کسی کی سفارش چاہیے",
+    "ڈرائیور ہوں کام چاہیے",
+    "گھر بیٹھے کام کی تلاش ہے",
+    "پارٹ ٹائم کام چاہیے",
+    "چوکیدار کی نوکری چاہیے"
+   ],
+   "weight": 9
+  },
+  "property_offered": {
+   "phrases_en": [
+    "house available for rent",
+    "5 marla brand new house for sale",
+    "plot for sale in DHA",
+    "flat available for bachelors",
+    "shop available on main road",
+    "portion available for small family",
+    "all utilities available",
+    "near school and market",
+    "possession ready"
+   ],
+   "phrases_roman_urdu": [
+    "ghar rent k liye khali hai",
+    "5 marla ka naya ghar sale k liye",
+    "plot available hai DHA me",
+    "flat khali hai bachelors k liye",
+    "dukaan rent par available hai",
+    "portion available hai",
+    "bijli pani gas available",
+    "school market qareeb hai",
+    "possession ready hai",
+    "registry inteqal ready"
+   ],
+   "phrases_urdu": [
+    "کرائے کے لیے مکان دستیاب ہے",
+    "مکان فروخت کے لیے ہے",
+    "پلاٹ دستیاب ہے",
+    "دکان کرائے پر دستیاب ہے",
+    "بجلی پانی گیس دستیاب ہے",
+    "قبضہ فوری ملے گا"
+   ],
+   "weight": 7
+  },
+  "property_wanted": {
+   "phrases_en": [
+    "looking for a house on rent",
+    "need a 5 marla house",
+    "flat required for small family",
+    "looking for a shop on rent",
+    "need a portion for rent",
+    "looking for hostel near university",
+    "plot required in good society",
+    "office space needed",
+    "looking for 10 marla plot",
+    "house needed on rent"
+   ],
+   "phrases_roman_urdu": [
+    "ghar chahiye rent par",
+    "5 marla ka ghar chahiye",
+    "flat chahiye family k liye",
+    "portion rent par lena hai",
+    "dukaan chahiye rent par",
+    "hostel chahiye university k paas",
+    "plot lena hai achi society me",
+    "office space chahiye",
+    "3 marla ghar chahiye",
+    "1 kanal ka ghar rent par chahiye"
+   ],
+   "phrases_urdu": [
+    "کرائے پر گھر چاہیے",
+    "پانچ مرلہ مکان درکار ہے",
+    "فلیٹ چاہیے",
+    "دکان کرائے پر لینی ہے",
+    "پلاٹ خریدنا ہے",
+    "ہاسٹل چاہیے",
+    "دفتر کے لیے جگہ چاہیے",
+    "دس مرلہ پلاٹ چاہیے"
+   ],
+   "weight": 8
+  },
+  "seeking_product": {
+   "phrases_en": [
+    "where can I buy",
+    "looking to buy a used laptop",
+    "need a second-hand bike",
+    "anyone selling a washing machine",
+    "looking for affordable furniture",
+    "where to get genuine parts",
+    "need baby items",
+    "looking for imported cosmetics",
+    "buying a used iphone",
+    "need solar panels"
+   ],
+   "phrases_roman_urdu": [
+    "koi used laptop bta do",
+    "second hand bike leni hai",
+    "washing machine kahan se loon?",
+    "furniture chahiye reasonable",
+    "koi iphone sale kr raha?",
+    "solar panels lagwane hain",
+    "koi fridge sale kare to btaye",
+    "used car leni hai koi bta do",
+    "generator chahiye",
+    "UPS lena hai koi guide kare"
+   ],
+   "phrases_urdu": [
+    "مجھے استعمال شدہ لیپ ٹاپ چاہیے",
+    "بائیک خریدنی ہے",
+    "فرج کہاں سے خریدوں",
+    "فرنیچر چاہیے مناسب قیمت پر",
+    "موبائل فون خریدنا ہے",
+    "سولر پینل لگوانے ہیں",
+    "جنریٹر کی ضرورت ہے",
+    "کار خریدنی ہے"
+   ],
+   "weight": 7
+  },
+  "seeking_service": {
+   "phrases_en": [
+    "looking for a plumber",
+    "need an electrician urgently",
+    "can anyone recommend a good car mechanic",
+    "looking for a reliable maid",
+    "need a home tutor",
+    "any good AC technician in the area",
+    "looking for movers and packers",
+    "need a photographer for an event",
+    "anyone know a trustworthy driver",
+    "looking for car wash service",
+    "need a plumber in DHA",
+    "recommend a good dentist near me"
+   ],
+   "phrases_roman_urdu": [
+    "koi acha electrician bata do",
+    "plumber chahiye urgent",
+    "koi achi maid recommend karein",
+    "home tutor ki zaroorat hai",
+    "AC wala koi hai?",
+    "koi acha photographer bta do event k liye",
+    "movers packers ka koi contact hai?",
+    "car mechanic chahiye reliable",
+    "koi driver available hai?",
+    "dentist ka koi bta do acha sa",
+    "cook chahiye ghar k liye",
+    "tailor chahiye stitching k liye"
+   ],
+   "phrases_urdu": [
+    "مجھے ایک اچھا الیکٹریشن چاہیے",
+    "پلمبر کی ضرورت ہے",
+    "کوئی اچھا درزی بتائیں",
+    "گھر کے لیے باورچی چاہیے",
+    "اے سی ٹھیک کرنے والا چاہیے",
+    "کوئی اچھا ڈاکٹر بتائیں",
+    "فوٹوگرافر چاہیے شادی کے لیے",
+    "بچوں کے لیے ٹیوشن والا چاہیے",
+    "گاڑی کا مکینک چاہیے",
+    "ڈرائیور کی ضرورت ہے"
+   ],
+   "weight": 8
+  },
+  "selling": {
+   "phrases_en": [
+    "for sale",
+    "selling my car",
+    "urgent sale",
+    "only serious buyers contact",
+    "slightly used",
+    "brand new sealed pack",
+    "fixed price no bargaining",
+    "first owner",
+    "all documents clear",
+    "selling due to shifting abroad"
+   ],
+   "phrases_roman_urdu": [
+    "sale kar raha hun",
+    "for sale hai",
+    "urgent sale hai",
+    "sirf serious buyer rabta kare",
+    "rate final hai bargaining nahi",
+    "dubai se laya tha bilkul new",
+    "shifting ki waja se sale",
+    "first owner hun",
+    "documents clear hain",
+    "half price me de raha hun",
+    "jis ko chahiye inbox kare",
+    "stock limited hai"
+   ],
+   "phrases_urdu": [
+    "فروخت کے لیے حاضر ہے",
+    "گاڑی بیچ رہا ہوں",
+    "فوری فروخت",
+    "صرف سنجیدہ خریدار رابطہ کریں",
+    "قیمت حتمی ہے",
+    "دستاویزات مکمل ہیں"
+   ],
+   "weight": 6
+  }
+ },
+ "cities": {
+  "Faisalabad": {
+   "aliases": [
+    "FSD",
+    "Faisalabad",
+    "Lyallpur",
+    "فیصل آباد"
+   ]
+  },
+  "Gujranwala": {
+   "aliases": [
+    "Gujranwala",
+    "Grw",
+    "گوجرانوالہ"
+   ]
+  },
+  "Hyderabad": {
+   "aliases": [
+    "Hyderabad",
+    "Hyd",
+    "حیدرآباد"
+   ]
+  },
+  "Islamabad": {
+   "aliases": [
+    "ISB",
+    "Islamabad",
+    "Isl",
+    "اسلام آباد"
+   ]
+  },
+  "Karachi": {
+   "aliases": [
+    "KHI",
+    "Karachi",
+    "Khi",
+    "کراچی"
+   ]
+  },
+  "Lahore": {
+   "aliases": [
+    "LHR",
+    "Lahore",
+    "Lhr",
+    "لاہور"
+   ]
+  },
+  "Multan": {
+   "aliases": [
+    "Multan",
+    "ملتان"
+   ]
+  },
+  "Peshawar": {
+   "aliases": [
+    "Peshawar",
+    "Pesh",
+    "پشاور"
+   ]
+  },
+  "Quetta": {
+   "aliases": [
+    "Quetta",
+    "کوئٹہ"
+   ]
+  },
+  "Rawalpindi": {
+   "aliases": [
+    "RWP",
+    "Rawalpindi",
+    "Pindi",
+    "pindi",
+    "راولپنڈی"
+   ]
+  },
+  "Sialkot": {
+   "aliases": [
+    "Sialkot",
+    "سیالکوٹ"
+   ]
+  }
+ },
+ "urgency_markers": [
+  "urgent",
+  "فوری",
+  "ASAP",
+  "aaj hi",
+  "kal tak",
+  "emergency",
+  "serious buyers only",
+  "sirf serious buyer rabta kare",
+  "first come first serve",
+  "pehle aao pehle pao",
+  "limited stock",
+  "stock limited hai",
+  "jald az jald",
+  "جلد از جلد",
+  "time short hai"
+ ]
+}
