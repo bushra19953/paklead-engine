@@ -17,6 +17,21 @@ Collect PUBLIC listings from OLX Pakistan through the operator's browser and emi
 - `published_at`: listing time converted to ISO-8601 when shown.
 - Price in PKR, area/locality + city, and any urgency signals in the text ("urgent sale", "final price", "negotiable", "must sell") — keep them verbatim in `text_original`; the engine's classifier and budget extractor read them from there.
 
+## URL scheme (verified live 2026-10-15 — A10/B25)
+- The LIVE detail URL scheme is `/item/<slug>-iid-<digits>` (use the DOM card
+  anchor href for each listing).
+- The search page's JSON-LD `RealEstateListing.url` scheme `/ad/<slug>-ID<digits>.html`
+  is STALE — all such URLs 404. Rewrite `/ad/<slug>-ID<digits>.html` →
+  `/item/<slug>-iid-<digits>` (both schemes share the same numeric id), never
+  emit the dead `/ad/` links.
+- Detail pages carry a rich `window['dataLayer']` payload (`ad_id`, `seller_id`,
+  `seller_type`, `number_of_photos`, `package_type` = featured/organic,
+  `loc_*` ids, numeric price) — but NO posted timestamp and NO price history
+  on olx.com.pk; never invent either.
+- Never click "Show phone" or any phone-reveal endpoint; never fetch the
+  search backend (`search.olxpk.net`) or use any credential embedded in page
+  state.
+
 ## Priority targets
 - Property for sale (houses, plots) in Islamabad, Lahore, Karachi — newest first.
 - "Urgent sale" / distress listings in any category.

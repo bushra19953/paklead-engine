@@ -9,28 +9,75 @@ dashboard. 100% free and open-source.
 **Design doctrine (binding):** the system automates *discovery and
 scoring*. It never evades platform protections, never contacts authors,
 never signs anything, never moves money. Humans make every consequential
-move. See `../wholesale_system/artifacts/pk_legal_boundaries.md` (SHR
-rules) and `TRD_PK.md` for the full specification.
+move. See `docs/legal_boundaries.md` (SHR rules) and `docs/` for the full
+specification.
 
-## Quick start
+## Quick start (fresh clone)
 
 ```bash
-cd ~/workspace/pak_lead_engine
+git clone https://github.com/bushra19953/paklead-engine
+cd paklead-engine
+python -m venv .venv && source .venv/bin/activate
+
 # 1) Demo run — no credentials, no network, fictional sample data:
 python run_daily.py --demo
 
-# 2) Tests (stdlib only):
+# 2) Tests (the engine core is pure stdlib — no install needed to test):
 python tests/test_engine.py
 
-# 3) Live run (needs Reddit app credentials in .env):
-cp .env.example .env   # fill in real values; never commit .env
-python run_daily.py
+# 3) Optional extras — only what you actually use:
+pip install -r requirements.txt   # ~470 MB; Reddit (praw), scheduler
+                                  # (apscheduler), API (fastapi/uvicorn),
+                                  # dashboard (streamlit), .env (dotenv)
+cp .env.example .env              # fill in real values; never commit .env
+python run_daily.py               # live run (needs Reddit creds in .env)
 
 # 4) API + scheduler + dashboard (Docker):
 docker compose up
 # API:       http://localhost:8000/docs
 # Dashboard: http://localhost:8501
 ```
+
+Minimum to develop on the engine (classifier, scorer, comparator,
+pipeline, collectors, tests): **nothing but Python 3.10+**. Extras
+install only for the live pieces you enable: Reddit API, the daily
+scheduler, the FastAPI service, or the Streamlit dashboard.
+
+## Web sweep worked example
+
+The engine collects OLX / Zameen / Graana / PakWheels through their
+public pages' own structured data (`web_public` access route). Source
+rows are generated from town trees the sites themselves link to — never
+guessed URLs (see `docs/platform_connections.md` and
+`engine/town_source_factory.py`):
+
+```bash
+# Dry-run: show the source rows that would be created for Islamabad towns
+python -m engine.town_source_factory --city islamabad
+# Human-readable plan (creates nothing). For piping:
+# python -m engine.town_source_factory --city islamabad --emit-json
+# Typical boundary_note: "url:https://www.olx.com.pk/g-13_g5001007/houses_c1721;pages:1"
+#                         "url:https://www.zameen.com/Houses/Islamabad-3/G_13-330.html;pages:3"
+
+# A source's pages are fetched with politeness delays and per-host caps;
+# a 403/429/CAPTCHA stops that source for the run (SHR-1, SHR-11).
+```
+
+## Command map
+
+| What you want | Command |
+|---|---|
+| Score the demo posts, see a digest | `python run_daily.py --demo` |
+| Run one full collection cycle | `python run_daily.py` |
+| Daily digest of HOT leads (text) | `python run_daily.py` — prints the run summary incl. new-HOT alerts |
+| Add new town sources (dry-run) | `engine/town_source_factory.py` `dry_run()` first, then insert |
+| Retire stale leads (180-day, dry-run) | `retention.purge(conn, days=180)` (dry-run is the default; real purge also needs `confirm=True`) |
+| Buyer registry + buyer matching | `engine/buyer_registry.py` `derive_buyers(conn)`, `match_buyers(conn, seller_lead)` |
+| Per-source yield alarms | `engine/yield_monitor.py` (alarms written during runs) |
+| Data-quality report | `python engine/data_quality.py` |
+| API (leads, buyers, detail, sync) | `uvicorn api:app` → http://localhost:8000/docs |
+| Dashboard (max-information view) | `streamlit run dashboard.py` |
+| Kill all collection immediately | set `KILL_SWITCH=true` in `.env` (SHR-12) |
 
 ## How it works
 

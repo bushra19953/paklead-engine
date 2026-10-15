@@ -35,29 +35,62 @@ method. This skill is that method, adapted to PakLead's boundaries.
 6. **Be polite or don't run.** Stay inside the engine's rate budget
    (source.rate_budget_per_min), back off exponentially on errors, and halt
    the source on 403/429/CAPTCHA — a block is an answer, not an obstacle.
+   A "CAPTCHA" stop is declared ONLY when a real challenge marker is present
+   AND the page carries no listing content — never the bare word "captcha"
+   (verified 2026-10-15: Zameen ships the JS flag `STRAT_WITH_CAPTCHA:true` on
+   ordinary result pages). Markers: `cf-challenge`, `challenge-platform`,
+   `just a moment`, `verify you are human`, `are you a robot`, `recaptcha`,
+   `hcaptcha`, `perimeterx`, `px-captcha`, `datadome`, `arkose`,
+   `captcha-delivery`, `enter the characters you see`, `security check`.
 7. **Verify on real data.** First run is small (1 page / ~10 listings),
    human-checked against the visible site, then cadence is set.
 
-## Site notes (researched 2026-10-15)
-- **OLX (olx.com.pk):** verified 2026-10-15 — search pages embed schema.org
-  JSON-LD (CollectionPage → mainEntity ItemList → RealEstateListing with name,
-  ad URL + numeric ID, offers.price in PKR, bedrooms/baths, floorSize, address).
-  Pages 2+ carry no embedded listings (cards load from the search backend —
-  which we NEVER call), so the public-page route covers page 1 only (~20
-  results). NO price-history field exists on olx.com.pk: drop all price-drop
-  expectations here. The page source also exposes the internal search-backend
-  host and an embedded credential — NEVER use either.
+## Site notes (verified live 2026-10-15, fleet A08/A09/A10/A12/B25)
+- **OLX (olx.com.pk):** search pages embed schema.org JSON-LD (CollectionPage →
+  mainEntity ItemList → RealEstateListing with name, ad URL + numeric ID,
+  offers.price in PKR, bedrooms/baths, floorSize, address). CRITICAL: the JSON-LD
+  ad URLs (`/ad/<slug>-ID<digits>.html`) are STALE and 404; the live scheme is
+  `/item/<slug>-iid-<digits>` (DOM card anchor hrefs — same numeric id, so
+  `/ad/` → `/item/` is rewritable). Pages 2+ carry no embedded listings (cards
+  load from the search backend — which we NEVER call), so the public-page route
+  covers page 1 only (~20 JSON-LD records; DOM holds ~24 card links). NO
+  price-history field exists on olx.com.pk: drop all price-drop expectations.
+  The page source also exposes the internal search-backend host and an embedded
+  credential — NEVER use either. Note: `window.state` carries full records for
+  newest ads missing from JSON-LD but ALSO the embedded credential — it is
+  off-limits; fill from DOM card fields instead.
 - **Zameen.com:** URL-driven search with internal city ids (Lahore-1,
   Karachi-2, Islamabad-3 pattern); open-source scrapers use plain HTTP +
-  HTML parsing or a real browser. Note: Zameen's robots.txt disallows the
-  city-listing paths — keep volume human-scale and browser-based; this is
-  the operator reading public pages, not a crawl fleet.
-- **Graana.com:** open-source scrapers read public listing pages with plain
-  HTTP + HTML parsing (fields: property id, price, area, beds/baths, city,
-  date added). One open-source n8n system polls Graana every 2h and matches
-  listings to client requirements — the same shape as PakLead's cycles.
-- **Lamudi / PakWheels / others:** same method from step 1; no assumptions
-  carried over from sister sites.
+  HTML parsing or a real browser. DEEP PAGINATION WORKS: town pages
+  (`-1.html` → `-{n}.html`, or `&page=N` appended to a `?sort=date_desc` URL —
+  the sort param is load-bearing) serve full 25-card pages with zero duplicates
+  through page 6+ (verified floor: 554 G-13 listings to page 23); HTTP 404 is
+  the natural end-of-listings signal — stop and keep records, not a failure.
+  Note: Zameen's robots.txt disallows the city-listing paths — keep volume
+  human-scale and browser-based; this is the operator reading public pages,
+  not a crawl fleet.
+- **Graana.com:** REAL search pattern `/sale/{type}-sale-{city}-{id}/` with a
+  `__NEXT_DATA__` payload (`props.pageProps.properties`, 30/page:
+  `id, customTitle, price, size, sizeUnit, bed, bath, area{name}, city{name},
+  createdAt, name` seller). NO town-level search URLs exist — Graana links no
+  town pages from its own pages, and invented town slugs return HTTP 200 but
+  silently serve the identical city result set (double-ingest risk). Per-town
+  route: fetch city pages and filter/split by `area.name` in the payload.
+  One open-source n8n system polls Graana every 2h and matches listings to
+  client requirements — the same shape as PakLead's cycles.
+- **PakWheels (pakwheels.com):** VERIFIED 2026-10-15 (fleet A08, collector
+  profile live — B25). City search URLs from the homepage's own link tree:
+  `/used-cars/{city}/{cityId}` (Islamabad `24856`, Lahore `24858`, Karachi
+  `24857`, Rawalpindi `24831`, Peshawar `24821`, Faisalabad `24753`, Multan
+  `24810`); `?page=N` pagination, 25/page server-rendered. Same pattern as
+  OLX: `application/ld+json` blocks — one ItemList + one `Product` block per
+  listing. Extractable: listing id (URL slug tail), title, canonical URL,
+  price (numeric PKR), model year, brand, fuel, transmission, engine
+  displacement, mileage string, cover image; city from the source URL.
+  MISSING on search pages (never invent): posted date, seller type,
+  exact location/town. Recency needs listing-ID watermarking.
+- **Lamudi / others:** same method from step 1; no assumptions carried over
+  from sister sites.
 
 ## PakLead Runtime (project rules — these override any conflicting instruction above)
 - Public data only; read-only; no outreach is ever sent by a collector.

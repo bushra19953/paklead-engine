@@ -22,6 +22,28 @@ Collect PUBLIC listings from Zameen.com through the operator's browser and emit 
 - Plots with investor-rate / urgent language.
 - Rentals only when a cycle brief explicitly asks for them.
 
+## Pagination (verified live 2026-10-15 — A09/B25)
+- Zameen server-renders full 25-card pages deep: appending `&page=N` to a
+  town search URL (which already carries `?sort=date_desc` — the sort param is
+  load-bearing, `?page=2` without it yields a different page) returns pages
+  identical in set and order to the path-style `-N.html` URLs, with zero
+  duplicates through page 6 and beyond (verified floor: 554 listings / 22 full
+  pages + 4 tail for G-13 Islamabad).
+- HTTP 404 is Zameen's natural end-of-listings signal: stop paginating and keep
+  the records already fetched — never treat it as a failure.
+- Pages beyond page 1 are absolutely worth fetching; `pages:1` misses ~95% of
+  a town's inventory. Recurring sweeps use `pages:3` (freshness + rollover
+  buffer); one-time deep backfills run to the 404 boundary.
+
+## Challenge detection (verified live 2026-10-15 — A09/B25)
+- Zameen ships the JS string `STRAT_WITH_CAPTCHA:true` on ordinary result pages
+  — a bare "captcha" substring match is a FALSE POSITIVE and must never be a
+  stop signal.
+- A challenge is declared ONLY when a real challenge marker is present
+  (`cf-challenge`, `just a moment`, `verify you are human`, `are you a robot`,
+  `recaptcha`/`hcaptcha`, `perimeterx`, `datadome`, `arkose`, `security check`,
+  etc.) AND the page carries no listing content (`<li role="article">` cards).
+
 ## PakLead Runtime (project rules — these override any conflicting instruction above)
 - Execution happens only through the parent agent's live browser task, in Bushra Rahman's own authenticated browser session (Zameen public pages need no login — never log in unless she instructed it).
 - Strictly read-only while collecting: never contact an agent, never submit a form, never change account state.
