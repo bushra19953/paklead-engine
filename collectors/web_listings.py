@@ -113,10 +113,6 @@ class WebListingsCollector(CollectorAdapter):
                         source.get("source_id"))
             return make_result(status="failed", error_class="web_config_missing")
 
-        if platform == "graana":
-            # Profile unverified — refuse to fake extraction.
-            log.warning("graana web profile unverified — collection refused.")
-            return make_result(status="failed", error_class="profile_unverified")
         delay = max(2.0, 60.0 / (int(budget_per_min) or 30))
         records: list[RawRecord] = []
         rate_events = 0
@@ -165,6 +161,8 @@ class WebListingsCollector(CollectorAdapter):
             return self._parse_olx(text)
         if platform == "zameen":
             return self._parse_zameen(text)
+        if platform == "graana":
+            return self._parse_graana(text, source)
         log.warning("web_public: no profile for platform '%s'", platform)
         return []
 
@@ -303,5 +301,75 @@ class WebListingsCollector(CollectorAdapter):
                 text_original=". ".join(p for p in parts if p),
                 url="https://www.zameen.com" + href,
                 published_at=_rel_to_iso(added_m.group(1) if added_m else ""),
+                access_route_used="web_public", comments=[]))
+        return records
+
+    # ------------------------------------------------------------------
+    def _parse_graana(self, text: str, source: dict) -> list[RawRecord]:
+        """Graana is a Next.js app: the search page's __NEXT_DATA__ JSON
+        carries props.pageProps.properties — full listing records (id,
+        price, size, beds/baths, area/city names, createdAt, seller name).
+        Detail links are the cards' own /property/...-{id}/ hrefs, mapped
+        by id from the same HTML; never reconstructed. Verified live
+        2026-10-15 (Islamabad houses: 30 records/page)."""
+        m = re.search(r'id="__NEXT_DATA__" type="application/json">(.*?)</script>',
+                      text, re.S)
+        if not m:
+            log.warning("graana: no __NEXT_DATA__ payload — profile may have changed.")
+            return []
+        try:
+            data = json.loads(m.group(1))
+            props = (data.get("props") or {}).get("pageProps") or {}
+            items = props.get("properties") or []
+        except (ValueError, AttributeError):
+            log.warning("graana: __NEXT_DATA__ unparsable.")
+            return []
+        hrefs = {pid_: href_ for href_, pid_ in
+                 re.findall(r'href="(/property/[^"]*?-(\d+)/)"', text)}
+        base = ""
+        for part in (source.get("boundary_note") or "").split(";"):
+            part = part.strip()
+            if part.startswith("url:"):
+                base = part[len("url:"):].strip()
+        records: list[RawRecord] = []
+        seen: set[str] = set()
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            pid = str(it.get("id") or "")
+            if not pid or pid in seen:
+                continue
+            title = (it.get("customTitle") or "").strip()
+            price = str(it.get("price") or "").strip()
+            parts = [title]
+            if price:
+                parts.append(f"Price Rs {price}")
+            size = it.get("size")
+            unit = (it.get("sizeUnit") or "").strip()
+            if size:
+                parts.append(f"Size {size} {unit}".strip())
+            bed, bath = it.get("bed"), it.get("bath")
+            bb = []
+            if bed:
+                bb.append(f"{bed} Beds")
+            if bath:
+                bb.append(f"{bath} Baths")
+            if bb:
+                parts.append(", ".join(bb))
+            area = ((it.get("area") or {}).get("name") or "").strip()
+            city = ((it.get("city") or {}).get("name") or "").strip()
+            loc = ", ".join(p for p in (area, city) if p)
+            if loc:
+                parts.append(loc)
+            if not title and not price:
+                continue  # don't emit empty records
+            seen.add(pid)
+            href = hrefs.get(pid)
+            records.append(RawRecord(
+                platform="graana", platform_post_id=pid, source_id=None,
+                author_handle=(it.get("name") or "").strip(),
+                text_original=". ".join(p for p in parts if p),
+                url=("https://www.graana.com" + href) if href else base,
+                published_at=(it.get("createdAt") or None),
                 access_route_used="web_public", comments=[]))
         return records

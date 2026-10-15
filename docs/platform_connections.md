@@ -84,7 +84,15 @@ polite collector. Learned from open-source projects:
   city-listing paths, so Zameen stays browser-based at human scale.
 - Graana public listing pages are readable with plain HTTP + HTML parsing
   (open-source scrapers + one n8n system polling Graana every 2h for client
-  matching). Graana added as a first-class property source
+  matching). Graana added as a first-class property source.
+  VERIFIED LIVE 2026-10-15: Graana is a Next.js app; its search pages
+  (pattern /sale/{type}-sale-{city}-{id}/, pagination ?pageSize=30&page=N)
+  embed a __NEXT_DATA__ JSON whose props.pageProps.properties carries 30
+  full listing records per page (id, numeric price, size/unit, beds/baths,
+  area + city names, createdAt timestamp, seller name, agency id). The
+  collector's graana profile parses exactly that payload; detail links are
+  the cards' own /property/...-{id}/ hrefs. The earlier guessed /search
+  URL returns an empty JS shell — do not use it.
   (skill: paklead-graana-harvest).
 
 ## Also in the original mission scope (not yet connected)
