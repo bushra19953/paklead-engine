@@ -52,10 +52,13 @@ guessed URLs (see `docs/platform_connections.md` and
 `engine/town_source_factory.py`):
 
 ```bash
-# Dry-run: show the source rows that would be created for Islamabad towns
-python -m engine.town_source_factory --city islamabad
+# Dry-run: show the source rows that would be created for Lahore towns
+python -m engine.town_source_factory --city lahore
 # Human-readable plan (creates nothing). For piping:
-# python -m engine.town_source_factory --city islamabad --emit-json
+# python -m engine.town_source_factory --city lahore --emit-json
+# (Islamabad's towns are already live in this project's DB, so the
+# factory excludes it: ValueError "unknown city 'islamabad'" means
+# "nothing new to generate".)
 # Typical boundary_note: "url:https://www.olx.com.pk/g-13_g5001007/houses_c1721;pages:1"
 #                         "url:https://www.zameen.com/Houses/Islamabad-3/G_13-330.html;pages:3"
 

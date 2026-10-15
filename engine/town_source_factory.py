@@ -136,7 +136,10 @@ def normalize_city(city: str) -> str:
     for known in ALL_CITIES:
         if city.strip().lower() in (known.lower(), city_slug(known)):
             return known
-    raise ValueError(f"unknown city {city!r} (known: {', '.join(ALL_CITIES)})")
+    raise ValueError(
+        f"unknown city {city!r} (known: {', '.join(ALL_CITIES)}). "
+        "Islamabad's towns are already live sources in this project's DB, "
+        "so the factory has nothing new to generate for it.")
 
 
 def normalize_platform(platform: str) -> str:
@@ -177,9 +180,22 @@ def zameen_area_slug(url: str, city: str) -> str:
 # Tree loaders (read-only)
 
 def _read_json(path: pathlib.Path) -> object:
-    """Read a JSON file; raise a clear error if it is missing."""
+    """Read a JSON file; raise a clear error if it is missing.
+
+    The harvested tree JSONs are operator data, not repo data — a fresh
+    clone does not have them. Point at your own with the
+    PAKLEAD_TREES_DIR env var, or write source rows by hand with the
+    boundary_note format from the README's worked web_public example.
+    """
     if not path.is_file():
-        raise FileNotFoundError(f"harvested tree not found: {path}")
+        raise FileNotFoundError(
+            f"harvested tree not found: {path}\n"
+            "This file is operator data (harvested from the sites' own "
+            "link trees), not repo data. Either set PAKLEAD_TREES_DIR to "
+            "the directory holding your tree JSONs, or create source rows "
+            "manually with the boundary_note format from the README's "
+            "worked web_public sweep example:\n"
+            '  url:https://www.olx.com.pk/g-13_g5001007/houses_c1721;pages:1')
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
 
