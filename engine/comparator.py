@@ -89,6 +89,24 @@ class Comparator:
                         if dt_a and dt_b and abs((dt_a - dt_b).total_seconds()) <= self.phone_days * 86400:
                             return lead, (f"matched on published number {phone} "
                                           f"(cross-platform hard key)")
+        # Tier 2.5: property identity — the same property cross-posted on
+        # two portals: same city + same intent family + near-identical
+        # title + asking price within 2% (2026-10-15 tuning).
+        if (post.get("intent_primary") or "").startswith("property"):
+            for lead in existing:
+                if lead.get("city") != post.get("city_tag"):
+                    continue
+                if lead.get("intent") != post.get("intent_primary"):
+                    continue
+                for mp in lead["merged_posts"]:
+                    pa, pb = post.get("budget_pkr"), mp.get("budget_pkr")
+                    if not pa or not pb or abs(pa - pb) / max(pa, pb) > 0.02:
+                        continue
+                    ta = set(_tokens((post.get("text_original") or "").split(".")[0]))
+                    tb = set(_tokens((mp.get("text_original") or "").split(".")[0]))
+                    if ta and tb and len(ta & tb) / len(ta | tb) >= 0.75:
+                        return lead, ("property identity: same title + asking "
+                                      f"price {pa} (cross-portal same property)")
         # Tier 3: text similarity with hard gates
         for lead in existing:
             if lead.get("city") != post.get("city_tag"):
@@ -100,6 +118,16 @@ class Comparator:
                 dt_b = _parse_dt(mp.get("published_at")) or _parse_dt(mp.get("seen_at"))
                 if dt_a and dt_b and abs((dt_a - dt_b).total_seconds()) > self.window_h * 3600:
                     continue
+                # Price gate (2026-10-15 tuning): text similarity must not
+                # merge two differently-priced deals. For property, price IS
+                # identity — a >2% gap blocks the merge; other verticals
+                # tolerate 20%.
+                pa, pb = post.get("budget_pkr"), mp.get("budget_pkr")
+                if pa and pb:
+                    prop = (post.get("intent_primary") or "").startswith("property")
+                    tol = 0.02 if prop else 0.20
+                    if abs(pa - pb) / max(pa, pb) > tol:
+                        continue
                 sim = tfidf_cosine(post.get("text_normalized", ""),
                                    mp.get("text_normalized", ""))
                 if sim >= self.sim_threshold:

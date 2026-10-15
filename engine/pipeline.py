@@ -172,7 +172,8 @@ class Pipeline:
 
         source_cities = jload(source.get("city_scope"))
         cls = C.classify_post(text, self.bank, source_cities,
-                              has_comments=bool(rec.get("comments")))
+                              has_comments=bool(rec.get("comments")),
+                              platform=rec.get("platform"))
         quarantined = 0
         quarantine_reason = None
         if cls["scam_suspect"]:

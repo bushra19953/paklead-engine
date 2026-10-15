@@ -374,8 +374,42 @@ def classify_comment(text: str, bank: dict) -> dict:
     }
 
 
+LISTING_PLATFORMS = {"olx", "zameen", "graana", "pakwheels"}
+_SELLING_MARKERS = ("for sale", "sale k liye", "bechna hai", "available for sale")
+_WANTED_MARKERS = ("chahiye", "required", "looking for", "needed", "lena hai",
+                   "want to buy", "khareedna", "talash hai")
+_PROPERTY_TOKENS = re.compile(
+    r"\b(house|plot|flat|marla|kanal|portion|ghar|apartment|shop|dukaan)\b", re.I)
+
+
+def _property_intent_fix(primary: str, secondary, text: str,
+                         budget_pkr, platform: str | None) -> tuple[str, object]:
+    """Property intent correction (2026-10-15 tuning).
+
+    Seller ads on listing platforms were landing in property_wanted:
+    partial-token matching lets size/house tokens outvote the long, specific
+    offered-phrases, and in Pakistani property slang a seller's asking price
+    is stated as "Demand". Rules, in order:
+    - a wanted verdict survives only with a genuine wanted marker;
+    - selling markers (incl. "demand" next to a price) or a listing-platform
+      source flip wanted -> offered;
+    - a generic "selling" verdict on a listing platform with property
+      tokens is a property offering.
+    """
+    low = text.lower()
+    wanted = any(m in low for m in _WANTED_MARKERS)
+    selling = any(m in low for m in _SELLING_MARKERS) or (
+        "demand" in low and budget_pkr)
+    on_listing = platform in LISTING_PLATFORMS
+    if primary == "property_wanted" and not wanted and (selling or on_listing):
+        return "property_offered", "property_wanted"
+    if primary == "selling" and on_listing and _PROPERTY_TOKENS.search(text):
+        return "property_offered", secondary
+    return primary, secondary
+
+
 def classify_post(text: str, bank: dict, source_cities: list[str] | None = None,
-                  has_comments: bool = False) -> dict:
+                  has_comments: bool = False, platform: str | None = None) -> dict:
     """Full per-post classification pass used by the pipeline."""
     intent = classify_intent(text, bank)
     city = extract_city(text, bank, source_cities)
@@ -383,10 +417,13 @@ def classify_post(text: str, bank: dict, source_cities: list[str] | None = None,
     urgency = extract_urgency(text, bank)
     language = detect_language(text)
     ctype, cphone = contact_type_of(text, has_comments)
+    primary, secondary = _property_intent_fix(
+        intent["primary"], intent["secondary"], text,
+        budget["budget_pkr"], platform)
     return {
         "language_mode": language,
-        "intent_primary": intent["primary"],
-        "intent_secondary": intent["secondary"],
+        "intent_primary": primary,
+        "intent_secondary": secondary,
         "intent_scores": intent["scores"],
         "city_tag": city["city"],
         "area_tag": city["area"],
