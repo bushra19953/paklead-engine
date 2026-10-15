@@ -73,7 +73,8 @@ class Pipeline:
             if route == "cli_adapter":
                 return FacebookAdapter("cli_adapter")
             return FacebookAdapter("manual_import")
-        if route == "web_public" and platform in ("olx", "zameen", "graana"):
+        if route == "web_public" and platform in ("olx", "zameen", "graana",
+                                                     "pakwheels"):
             from collectors.web_listings import WebListingsCollector
             return WebListingsCollector()
         from collectors.import_adapter import ImportAdapter
@@ -103,6 +104,13 @@ class Pipeline:
 
         self._loophole_update(run_stamp)
         self._expiry_sweep(run_stamp)
+        # B50: Disposition pillar — rebuild the buyer registry from the
+        # buyer-lane posts after every run (idempotent; public data only).
+        try:
+            from engine import buyer_registry as _br
+            _br.derive_buyers(self.conn)
+        except Exception:
+            log.exception("buyer_registry.derive_buyers failed (non-fatal)")
         self.conn.commit()
         summary["alerts"] = self.alerts
         summary["leads"] = self.conn.execute("SELECT COUNT(*) c FROM lead").fetchone()["c"]
@@ -138,6 +146,16 @@ class Pipeline:
                 self.conn.execute("UPDATE source SET watermark=? WHERE source_id=?",
                                   (result["new_watermark"], source["source_id"]))
             self.conn.commit()
+            # B19: per-source yield monitoring (silent 0-yield = missed leads).
+            try:
+                from engine import yield_monitor as _ym
+                _ym.ensure_yield_table(self.conn)
+                _ym.record_run(self.conn, source["source_id"], result["fetched"],
+                               len(result["records"]), result["status"],
+                               result["error_class"], utcnow_iso())
+                self.conn.commit()
+            except Exception:
+                log.exception("yield_monitor.record_run failed (non-fatal)")
             return {"source": source["source_id"], "status": result["status"],
                     "fetched": result["fetched"], "stored": len(result["records"])}
         except Exception as exc:  # adapter bugs must not kill the day
@@ -147,8 +165,50 @@ class Pipeline:
                 " WHERE run_id=?", (utcnow_iso(), type(exc).__name__, run_id))
             audit(self.conn, "collector", "run_failed", source["source_id"],
                   {"error": str(exc)[:200]})
+            try:
+                from engine import yield_monitor as _ym
+                _ym.ensure_yield_table(self.conn)
+                _ym.record_run(self.conn, source["source_id"], 0, 0, "failed",
+                               type(exc).__name__, utcnow_iso())
+            except Exception:
+                log.exception("yield_monitor.record_run failed (non-fatal)")
             self.conn.commit()
             return {"source": source["source_id"], "status": "failed"}
+
+    # ------------------------------------------------------------------
+    def run_web_sources_concurrent(self, sources: list[dict], run_stamp: str,
+                                   max_workers: int = 6,
+                                   host_delay: float = 1.5) -> list[dict]:
+        """B17: fetch web_public sources concurrently (per-host politeness
+        caps inside collectors/concurrent.py), then process each source's
+        records sequentially through the normal ingest path. _run_source
+        stays sequential — call this explicitly for web sweeps."""
+        from collectors import concurrent as _conc
+        results = _conc.run_sources_concurrently(
+            sources, budget_per_min=30, max_workers=max_workers,
+            host_delay=host_delay)
+        out = []
+        for source in sources:
+            res = results.get(source["source_id"])
+            if res is None:
+                out.append({"source": source["source_id"], "status": "failed"})
+                continue
+            records = res.get("records", [])
+            self._process_records(records, source, run_stamp)
+            try:
+                from engine import yield_monitor as _ym
+                _ym.ensure_yield_table(self.conn)
+                _ym.record_run(self.conn, source["source_id"], res.get("fetched", 0),
+                               len(records), res.get("status", "ok"),
+                               res.get("error_class"), utcnow_iso())
+            except Exception:
+                log.exception("yield_monitor.record_run failed (non-fatal)")
+            self.conn.commit()
+            out.append({"source": source["source_id"],
+                        "status": res.get("status", "ok"),
+                        "fetched": res.get("fetched", 0),
+                        "stored": len(records)})
+        return out
 
     # ------------------------------------------------------------------
     def _process_records(self, records: list[dict], source: dict, run_stamp: str) -> None:
@@ -206,6 +266,17 @@ class Pipeline:
              jdump(cls["urgency_markers"]), cls["contact_published"],
              cls["contact_type"], url, rec.get("published_at"), seen,
              quarantined, quarantine_reason))
+        # B20: price-drop is OUR OWN signal (no site publishes history) —
+        # snapshot every observed listing price; skip when none present.
+        try:
+            if cls.get("budget_pkr"):
+                from engine import price_history as _ph
+                _ph.ensure_price_table(self.conn)
+                _ph.snapshot(self.conn,
+                             f"{rec.get('platform')}:{rec.get('platform_post_id')}",
+                             cls["budget_pkr"], seen)
+        except Exception:
+            log.exception("price_history.snapshot failed (non-fatal)")
         for c in rec.get("comments") or []:
             cid = f"{rec.get('platform')}:{c.get('platform_comment_id', '')}"
             cc = C.classify_comment(c.get("text", ""), self.bank)
@@ -243,22 +314,39 @@ class Pipeline:
     def _existing_leads(self, post: dict) -> list[dict]:
         """Candidate leads for clustering, prefiltered in SQL.
 
-        The comparator only merges when city and intent match, and every
-        merge path is time-bounded (phone: 7 days, text: 72h), so leads
-        outside those gates can never match — filter them out instead of
-        loading the whole table per post (O(n^2) -> O(bucket)).
+        The text tiers (T2.5/T3) only merge within the same city+intent, so
+        they get the intent-filtered bucket. The phone tier (T2) is
+        intent-agnostic by design — the same normalized published number
+        in-window merges regardless of intent label (B28 tweak 4) — so a
+        post carrying a published number additionally scans leads of other
+        intents. The comparator's T2.5/T3 loops still enforce their own
+        exact-intent gates, so the extra candidates only widen the phone
+        path.
         """
         cutoff = (_now() - datetime.timedelta(days=8)).isoformat()
         rows = self.conn.execute(
             "SELECT * FROM lead WHERE city IS NOT DISTINCT FROM ?"
             " AND intent IS NOT DISTINCT FROM ? AND first_seen >= ?",
             (post.get("city_tag"), post.get("intent_primary"), cutoff)).fetchall()
+        if post.get("contact_published"):
+            # B28 tweak 4: drop the exact-intent SQL prefilter for the
+            # phone-identity path (A14: same-phone in-window splits were
+            # systematic across intent labels).
+            rows = list(rows) + self.conn.execute(
+                "SELECT * FROM lead WHERE city IS NOT DISTINCT FROM ?"
+                " AND intent IS DISTINCT FROM ? AND first_seen >= ?",
+                (post.get("city_tag"), post.get("intent_primary"), cutoff)).fetchall()
         leads = []
         for r in rows:
             leads.append({"lead_id": r["lead_id"],
                           "merged_posts": self._posts_of(jload(r["merged_post_ids"])),
                           "city": r["city"], "intent": r["intent"],
-                          "status": r["status"]})
+                          "status": r["status"],
+                          # B28: carry the stored explanation so the
+                          # append in _cluster_and_score actually accumulates
+                          # (A14 F5: was dead code, stored label was always
+                          # just the LAST merge's reason).
+                          "cluster_explanation": r["cluster_explanation"]})
         return leads
 
     def _cluster_and_score(self, post_id: str, quarantined: int, run_stamp: str) -> None:
@@ -356,6 +444,9 @@ class Pipeline:
             "platform_count": len(platforms), "contact_type": best_contact,
             "serious_buyer": serious, "replacement_demand": replacement,
             "stated_deadline": deadline,
+            # B26: merged post texts feed the rental-cap rule's rental/sale
+            # marker detection (inert until this was provided).
+            "post_texts": [p["text_original"] for p in posts],
         }
 
     def _score_lead(self, lead_id: str, now: datetime.datetime,
