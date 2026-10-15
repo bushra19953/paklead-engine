@@ -63,7 +63,7 @@ class FacebookAdapter(CollectorAdapter):
             return self._browser_backend(source, ctx)
         if self.mode in ("cli_adapter", "api"):
             return self._cli_backend(source, since, ctx)
-        return self._import_backend(source, ctx)
+        return self._import_backend(source, since, ctx)
 
     # ------------------------------------------------------------------
     def _cli_backend(self, source: dict, since: str | None, ctx: dict) -> CollectResult:
@@ -127,15 +127,20 @@ class FacebookAdapter(CollectorAdapter):
         )
 
     # ------------------------------------------------------------------
-    def _import_backend(self, source: dict, ctx: dict) -> CollectResult:
+    def _import_backend(self, source: dict, since: str | None,
+                        ctx: dict) -> CollectResult:
         """Backend (c): CSV/JSON import. Always available, zero platform risk."""
         import os
 
         from .import_adapter import ImportAdapter
 
-        path = (ctx.get("settings") and
-                getattr(ctx["settings"], "FB_IMPORT_FILE", None)) or \
+        # Per-source import file first: boundary_note "file:<path>"; falls back
+        # to the global settings FB_IMPORT_FILE, then the env var (TRD FR-PK-16).
+        note = (source.get("boundary_note") or "")
+        path = (note[len("file:"):] if note.startswith("file:")
+                else (ctx.get("settings") and
+                      getattr(ctx["settings"], "FB_IMPORT_FILE", None))) or \
                os.environ.get("FB_IMPORT_FILE", "")
         adapter = ImportAdapter(file_path=path)
-        return adapter.collect(source, None,
+        return adapter.collect(source, since,
                                int(ctx.get("budget_per_min", 30) or 30), ctx)

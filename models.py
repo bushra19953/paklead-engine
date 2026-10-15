@@ -61,7 +61,9 @@ CREATE TABLE IF NOT EXISTS comment (
     text TEXT,
     published_at TEXT,
     is_provider_reply INTEGER DEFAULT 0,
-    seen_at TEXT NOT NULL
+    seen_at TEXT NOT NULL,
+    intent_primary TEXT,
+    contact_published TEXT
 );
 
 CREATE TABLE IF NOT EXISTS author_profile (
@@ -175,6 +177,14 @@ def connect(db_path: str) -> sqlite3.Connection:
 
 def init_db(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+    # Migration: comment columns added for comment classification (TRD FR-PK-42).
+    # Upgrade existing databases cleanly — CREATE TABLE IF NOT EXISTS alone
+    # would leave old DBs without these columns.
+    existing = {r[1] for r in
+                conn.execute("PRAGMA table_info(comment)").fetchall()}
+    for col in ("intent_primary", "contact_published"):
+        if col not in existing:
+            conn.execute(f"ALTER TABLE comment ADD COLUMN {col} TEXT")
     conn.commit()
 
 

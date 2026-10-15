@@ -204,13 +204,15 @@ class Pipeline:
              quarantined, quarantine_reason))
         for c in rec.get("comments") or []:
             cid = f"{rec.get('platform')}:{c.get('platform_comment_id', '')}"
+            cc = C.classify_comment(c.get("text", ""), self.bank)
             self.conn.execute(
                 "INSERT OR IGNORE INTO comment (comment_id, post_id, author_handle,"
-                " text, published_at, is_provider_reply, seen_at)"
-                " VALUES (?,?,?,?,?,?,?)",
+                " text, published_at, is_provider_reply, seen_at,"
+                " intent_primary, contact_published)"
+                " VALUES (?,?,?,?,?,?,?,?,?)",
                 (cid, post_id, c.get("author_handle", ""), c.get("text", ""),
-                 c.get("published_at"), int(C.is_provider_reply(c.get("text", ""))),
-                 seen))
+                 c.get("published_at"), int(cc["is_provider_reply"]),
+                 seen, cc["intent_primary"], cc["contact_published"]))
         if quarantine_reason == "scam_red_flag":
             # Excluded from scoring, alerts, and exports until cleared (FR-PK-38)
             audit(self.conn, "system", "post_quarantined", post_id,
@@ -315,6 +317,21 @@ class Pipeline:
             if lead["intent"] == "hiring" and re.search(
                     r"(kal|tomorrow|deadline|last date)", p["text_original"], re.I):
                 deadline = True
+        # Open-thread contactability: at least one non-provider comment means
+        # the thread itself is a reachable channel. Provider replies are
+        # sellers and must never count (SHR-safe). Comment phones are NOT
+        # used for identity merge (posts only, TRD FR-PK-44).
+        post_ids = [p["post_id"] for p in posts]
+        has_open_thread = False
+        if post_ids:
+            row = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM comment WHERE post_id IN (%s)"
+                " AND is_provider_reply = 0" %
+                ",".join("?" * len(post_ids)), post_ids).fetchone()
+            has_open_thread = bool(row and row["n"])
+        rank = {"phone": 4, "whatsapp": 4, "open_thread": 3, "inbox": 2, "none": 0}
+        if has_open_thread and rank.get(best_contact, 0) < 3:
+            best_contact = "open_thread"  # activates contact_open_thread = 5
         return {
             "intent": lead["intent"], "category_weight": weight,
             "price_inquiry": price_inq, "first_seen": first,

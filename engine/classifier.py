@@ -365,6 +365,15 @@ def is_provider_reply(text: str) -> bool:
     return any(p.search(text) for p in PROVIDER_REPLY_PATTERNS)
 
 
+def classify_comment(text: str, bank: dict) -> dict:
+    """Per-comment classification: intent + public phone + provider-reply flag."""
+    return {
+        "intent_primary": classify_intent(text, bank)["primary"],
+        "contact_published": normalize_phone(text),
+        "is_provider_reply": is_provider_reply(text),
+    }
+
+
 def classify_post(text: str, bank: dict, source_cities: list[str] | None = None,
                   has_comments: bool = False) -> dict:
     """Full per-post classification pass used by the pipeline."""

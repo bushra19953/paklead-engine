@@ -47,6 +47,8 @@ class ImportAdapter(CollectorAdapter):
 
         records: list[RawRecord] = []
         rejected = 0
+        seen_urls: set[str] = set()
+        watermark: str | None = None
         try:
             rows = self._read_rows()
         except Exception as exc:
@@ -59,6 +61,17 @@ class ImportAdapter(CollectorAdapter):
             if not text or not url:
                 rejected += 1
                 continue
+            if url in seen_urls:  # dedupe within the file (TRD FR-PK-19)
+                rejected += 1
+                continue
+            pub = row.get("published_at") or ""
+            if since and pub:  # watermark delta: skip already-seen rows
+                try:
+                    if str(pub) <= str(since):
+                        continue
+                except Exception:
+                    pass
+            seen_urls.add(url)
             platform = (row.get("platform") or source.get("platform")
                         or self.platform_default).strip()
             if is_scam_suspect(text):
@@ -67,6 +80,8 @@ class ImportAdapter(CollectorAdapter):
                      "access_route_used": self.access_route})
                 continue  # quarantined, not stored (TRD FR-PK-38)
             pid = str(row.get("platform_post_id") or row.get("id") or url)
+            if pub and (watermark is None or str(pub) > str(watermark)):
+                watermark = str(pub)
             records.append(RawRecord(
                 platform=platform,
                 platform_post_id=pid,
@@ -79,8 +94,12 @@ class ImportAdapter(CollectorAdapter):
                 comments=[],
             ))
         if rejected:
-            log.warning("Import: %d rows rejected (missing text/url).", rejected)
-        return make_result(records, fetched=len(rows), status="ok")
+            log.warning("Import: %d rows rejected (missing text/url/duplicate).",
+                        rejected)
+        ctx["import_rejected"] = rejected
+        status = "partial" if rejected and records else "ok"
+        return make_result(records, fetched=len(rows), status=status,
+                           new_watermark=watermark)
 
     # ------------------------------------------------------------------
     def _read_rows(self) -> list[dict]:
